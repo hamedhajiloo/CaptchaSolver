@@ -1,27 +1,25 @@
-﻿using System.Drawing;
-using System.Drawing.Drawing2D;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace CaptchaSolver
 {
     public static class ImageAnalyzer
     {
         public static int BeamSize { get; set; } = 50;
-
         public static int GridSize { get; set; } = 2;
-
-        public static Color EmptyPlaceColor = Color.Black;
-
+        public static Rgba32 EmptyPlaceColor = new Rgba32(0, 0, 0, 255); // Black color
         public static int Height { get; set; }
         public static int Width { get; set; }
-        public static Bitmap Image { get; set; }
+        public static Image<Rgba32> Image { get; set; }
 
-        public static int GetBlackPercentage(Bitmap image)
+        public static int GetBlackPercentage(Image<Rgba32> image)
         {
             Image = image;
             Height = image.Height;
             Width = image.Width;
 
-            var colors = new List<Color>();
+            var colors = new List<Rgba32>();
 
             for (var x = BeamSize + 1; x < Width - BeamSize - 1; x += GridSize)
             {
@@ -34,10 +32,14 @@ namespace CaptchaSolver
                 }
             }
 
-            var avgColor = Color.FromArgb((int)colors.Average(c => c.R), (int)colors.Average(c => c.G), (int)colors.Average(c => c.B)); ;
+            var avgColor = new Rgba32(
+                (byte)colors.Average(c => c.R),
+                (byte)colors.Average(c => c.G),
+                (byte)colors.Average(c => c.B),
+                255
+            );
 
             var distance = GetColorDistance(avgColor, EmptyPlaceColor);
-
             return distance;
         }
 
@@ -46,16 +48,17 @@ namespace CaptchaSolver
             return new Point(point.X, Height - point.Y);
         }
 
-        public static int GetColorDistance(Color left, Color right)
+        public static int GetColorDistance(Rgba32 left, Rgba32 right)
         {
             return (Math.Abs(left.R - right.R) + Math.Abs(left.G - right.G) + Math.Abs(left.B - right.B)) / 3;
         }
-        public static Color PickBeamColor(Point location, int radius)
+
+        public static Rgba32 PickBeamColor(Point location, int radius)
         {
-            var colors = new List<Color>
-            {
-                PickPixelColor(location)
-            };
+            var colors = new List<Rgba32>
+        {
+            PickPixelColor(location)
+        };
 
             for (var i = GridSize; i < radius; i += GridSize)
             {
@@ -67,14 +70,18 @@ namespace CaptchaSolver
                     colors.Add(PickPixelColor(new Point(location.X - i, location.Y - j)));
                 }
             }
-            return Color.FromArgb((int)colors.Average(c => c.R), (int)colors.Average(c => c.G), (int)colors.Average(c => c.B));
+
+            return new Rgba32(
+                (byte)colors.Average(c => c.R),
+                (byte)colors.Average(c => c.G),
+                (byte)colors.Average(c => c.B),
+                255
+            );
         }
 
-        public static Color PickPixelColor(Point location)
+        public static Rgba32 PickPixelColor(Point location)
         {
-            //var realPoint = RealPoint(location);
-            var pixel = Image.GetPixel(location.X, location.Y);
-            return pixel;
+            return Image[location.X, location.Y];
         }
     }
 }
